@@ -1,0 +1,175 @@
+#!/bin/bash
+menu=/tmp/os-menu.sh
+echo install deps
+sleep 1
+sudo apt update
+sudo apt install debootstrap dialog arch-install-scripts zenity links bsdtar squashfs-tools -y  
+echo loading installer menu
+sleep 1
+configurefedora10() {
+		echo -n "enter user name > " 
+	read text
+	sudo su -c 'genfstab -U /mnt/fedora > /mnt/fedora/etc/fstab'
+	sudo arch-chroot /mnt/fedora /bin/ln -sf /proc/mounts /etc/mtab
+	sudo arch-chroot /mnt/fedora /usr/bin/passwd jc
+	sudo arch-chroot /mnt/fedora /usr/bin/nano /etc/hostname
+	sudo arch-chroot /mnt/fedora /usr/bin/nano /etc/hosts
+	sudo arch-chroot /mnt/fedora /usr/sbin/hwclock --systohc
+	sudo arch-chroot /mnt/fedora /bin/ln -sf /usr/share/zoneinfo/US/Pacific /etc/localtime
+	sudo arch-chroot /mnt/fedora /usr/bin/passwd root
+	sudo arch-chroot /mnt/fedora /usr/sbin/useradd -m -g users -G wheel $text
+	echo base system configured now going back to menu
+	sleep 5
+}
+downloadfedora10() {
+	cd /tmp
+	sudo su -c 'echo '192.168.1.123' operatingsystems.com >> /etc/hosts'
+	echo downloading fedora iso
+	sudo wget operatingsystems.com/pub/linux/fedora/10/F10-x86_64-Live.iso
+	echo entering dir /tmp
+	cd /tmp
+	echo extracting fedora iso using bsdtar
+	sudo bsdtar -xf F10-x86_64-Live.iso
+	cd /tmp/LiveOS/
+	cd ..
+	sudo mkdir mount
+	cd mount
+	sudo unsquashfs /tmp/LiveOS/squashfs.img
+	# squashfs-root
+	#cd LiveOS
+	sudo mkdir /tmp/mount/squashfs-root/LiveOS/mount
+	sudo mount -o loop /tmp/mount/squashfs-root/LiveOS/ext3fs.img /tmp/mount/squashfs-root/LiveOS/mount
+	sudo cp -av /tmp/mount/squashfs-root/LiveOS/mount/* /mnt/fedora
+	sudo chmod 1777 /tmp
+	echo base system installed now configuring it
+	sleep 5
+	configurefedora10
+}
+installfedora10() {
+	clear
+	echo to install fedora 10 from within debian or ubuntu type cfdisk or gparted /dev/sdx where /dev/sdx is the drive where you want to install fedora 10
+	echo then type mkfs.ext3 /dev/sdxn where /dev/sdxn is the partition where you want to install fedora on. if you use gparted you dont need to type mkfs.ext3 /dev/sdxn
+	echo then type mkdir /mnt/fedora
+	echo then type mount /dev/sdxn /mnt/fedora where /dev/sdxn is the drive where you want to install fedora on
+    sudo bash
+    downloadfedora10
+}
+Exit() {
+	echo exiting
+}
+configure1110() {
+		echo -n "enter user name > " 
+	read text
+	sudo mount --bind /dev /mnt/ubuntu/dev
+	sudo mount --bind /dev/pts /mnt/ubuntu/dev/pts
+	sudo mount --bind /proc /mnt/ubuntu/proc
+	sudo mount --bind /sys /mnt/ubuntu/sys
+	sudo mount --bind /run /mnt/ubuntu/run
+	sudo chroot /mnt/ubuntu /usr/sbin/adduser $text
+	sudo su -c "genfstab -U /mnt/ubuntu > /mnt/ubuntu/etc/fstab"
+	sudo chroot /mnt/ubuntu /usr/sbin/dpkg-reconfigure tzdata
+	sudo chroot /mnt/ubuntu /usr/bin/apt-get update
+	sudo chroot /mnt/ubuntu /usr/bin/apt-get install nano -y
+	sudo chroot /mnt/ubuntu /usr/bin/nano /etc/hostname
+	sudo chroot /mnt/ubuntu /usr/bin/nano /etc/hosts
+	sudo chroot /mnt/ubuntu /usr/bin/apt-get install console-setup -y
+	sudo chroot /mnt/ubuntu /usr/sbin/dpkg-reconfigure keyboard-configuration 
+	sudo chroot /mnt/ubuntu /bin/bash
+	
+}
+debootstrap1110() {
+	clear 
+	echo running sudo debootstrap --variant=minbase --no-merged-usr --no-check-gpg --arch amd64 oneiric  /mnt/ubuntu http://old-releases.ubuntu.com/ubuntu
+    sudo debootstrap --variant=minbase --no-merged-usr --no-check-gpg --arch amd64 oneiric /mnt/ubuntu http://old-releases.ubuntu.com/ubuntu
+	echo base system installed now configureing it
+	sleep 1
+	configure1110
+}
+installubuntu1110() {
+	clear
+	echo to install ubuntu 11.10 type cfdisk or gparted /dev/xxx where /dev/xxx is the drive where you want to install ubuntu 11.10
+	echo then type mkfs.ext4 /dev/xxx where /dev/xxx is the partition that you created
+	echo then create dir /mnt/ubuntu or if it already exists then mount it to that mountpoint
+	echo then type mount /dev/xxx where /dev/xxx is the drive where you want to install ubuntu
+	sleep 1
+	sudo bash
+	clear
+	zenity --question
+	response=$?
+	case $response in
+   0) debootstrap1110;;
+   1) echo exited;clear;exit;;
+esac
+}
+
+debootstrap1210(){
+	echo running debootstrap --variant=minbase --no-merged-usr --arch amd64 quantal /mnt/ubuntu http://old-releases.ubuntu.com/ubuntu
+	sleep 1
+sudo	debootstrap --variant=minbase --no-merged-usr --arch amd64 quantal /mnt/ubuntu http://old-releases.ubuntu.com/ubuntu
+}
+installubuntu1210() {
+	clear
+	echo to install a ubuntu 12.10 use cfdisk to use it type cfdisk /dev/xxx or gparted /dev/xxx
+	echo then type mkfs.ext4 /dev/xxx only if you use cfdisk
+	echo create dir /mnt/ubuntu
+	echo then mount /dev/xxx that was formated to /mnt/ubuntu 
+	sudo bash
+	echo welcome to the ubuntu 12.10 installer
+	sleep 1
+	dialog --title "do you want to install ubuntu" \
+--backtitle "install ubuntu" \
+--yesno "do you want to install ubuntu 12.10  response=$?" 7 60
+response=$?
+case $response in
+   0) debootstrap1210 && configure1210;;
+   1) echo exited;clear;exit;;
+esac
+
+	
+}
+configure1210() {
+		echo -n "enter user name > " 
+	read text
+	sudo mount --bind /dev /mnt/ubuntu/dev
+	sudo mount --bind /dev/pts /mnt/ubuntu/dev/pts
+	sudo mount --bind /proc /mnt/ubuntu/proc
+	sudo mount --bind /sys /mnt/ubuntu/sys
+	sudo mount --bind /run /mnt/ubuntu/run
+	sudo chroot /mnt/ubuntu /usr/sbin/adduser $text
+	sudo su -c "genfstab -U /mnt/ubuntu > /mnt/ubuntu/etc/fstab"
+	sudo chroot /mnt/ubuntu /usr/sbin/dpkg-reconfigure tzdata
+	sudo chroot /mnt/ubuntu /usr/bin/apt-get update
+	sudo chroot /mnt/ubuntu /usr/bin/apt-get install nano -y
+	sudo chroot /mnt/ubuntu /usr/bin/nano /etc/hostname
+	sudo chroot /mnt/ubuntu /usr/bin/nano /etc/hosts
+	sudo chroot /mnt/ubuntu /usr/bin/apt-get install console-setup -y
+	sudo chroot /mnt/ubuntu /usr/sbin/dpkg-reconfigure keyboard-configuration 
+	sudo chroot /mnt/ubuntu /usr/bin/apt-get install linux-image-amd64
+	sudo chroot /mnt/ubuntu /usr/bin/apt-get install grub-pc
+	echo to install grub type grub-install /dev/xxx where /dev/xxx is the drive where you want to install grub
+	sudo chroot /mnt/ubuntu /bin/bash
+	
+}
+
+while true 
+do
+clear
+clear
+dialog --clear  --help-button --backtitle  "program installer menu" \
+--title "operating system installer menu" \
+--menu "chose os to install" 40 130 40 \
+ubuntu_12.10 "install ubuntu 12.10" \
+fedora_10 "install fedora 10" \
+ubuntu_11.10 "install ubuntu 11.10" \
+gentoolinux "install gentoo linux" \
+Exit "exit" 2>"${menu}"
+menuitem=$(<"${menu}")
+case $menuitem in
+	gentoolinux) installgentoolinux;;
+	ubuntu_12.10) installubuntu1210;;
+	fedora_10) installfedora10;;
+	ubuntu_11.10) installubuntu1110;;
+	Exit) Exit;break;;
+	esac
+	done
+clear
